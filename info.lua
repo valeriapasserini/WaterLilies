@@ -1,8 +1,16 @@
 local composer = require( "composer" )
 local scene = composer.newScene()
 local widget = require "widget"
+local frog= require('frog')
+local waterlilie= require('waterlilie')
+local waterlilies=display.newGroup()
+local fishes = display.newGroup()
 
 
+
+if composer.getVariable( "sound" )==nil then
+	composer.setVariable( "sound",true )
+end
 
 function scene:create( event )
     local sceneGroup = self.view
@@ -22,7 +30,25 @@ function scene:create( event )
 	sea.x = 0 + display.screenOriginX
 	sea.y = 0 + display.screenOriginY
 	sea.alpha=0.4
+	-- make a waterlilie (off-screen), position it, and rotate slightly
+	math.randomseed(os.time())
+	sceneGroup:insert(background)
+	sceneGroup:insert(sea)
 
+	for i=1, math.floor((display.actualContentHeight*4)/display.actualContentWidth)
+	do
+		local pos={1,2,3,4}
+		local x= math.random(#pos)*(display.actualContentWidth/4)-(display.actualContentWidth/8)
+		local y= i*(display.actualContentWidth/4)-(display.actualContentWidth/4)-150
+		local r=math.random(360)
+		waterlilie_ = waterlilie.new(waterlilies, x,  y, display.actualContentWidth/4, display.actualContentWidth/4 )
+		waterlilie_.rotation = r
+    end
+    local nearestwaterlilie=waterlilies[waterlilies.numChildren]
+    frog=frog.new(sceneGroup, nearestwaterlilie.x,  nearestwaterlilie.y, display.actualContentWidth/4, display.actualContentWidth/4 )
+	sceneGroup:insert(fishes)
+	sceneGroup:insert(waterlilies)
+    sceneGroup:insert(frog)
     author = display.newText( sceneGroup, "Authors:", display.contentCenterX, display.contentCenterY, "Herculanum", 15 )
     author.align="center"
     author:setFillColor(1,1,1)
@@ -90,8 +116,6 @@ end
 function scene:destroy( event )
     local sceneGroup = self.view
     -- Code here runs prior to the removal of scene's view
-    audio.dispose(click)
-    click=nil
 end
 
 
