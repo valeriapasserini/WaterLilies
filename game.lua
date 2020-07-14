@@ -7,7 +7,26 @@
 local composer = require( "composer" )
 local scene = composer.newScene()
 local widget = require "widget"
+local pause, press=false, false
+local backBtn
+local pauseBtn
+local restartBtn
+local result
+local timerPause
 
+
+local actualScore=0
+local actualRecord = composer.getVariable( "record" )
+
+
+local score = display.newText( 0, display.contentCenterX, 40,  "Herculanum", 50 )
+score:setFillColor( 1, 1, 1 )
+local record = display.newText( "Record: "..actualRecord, display.contentCenterX, 70,  "Herculanum", 15 )
+record:setFillColor( 1, 1, 1 )
+record.alpha=0.6
+local secondi=3
+local time
+local fog
 -- include Corona's "physics" library
 local physics = require "physics"
 --------------------------------------------
@@ -34,6 +53,8 @@ timebar:setProgress( countdown )
 -- forward declarations and other locals
 local screenW, screenH, halfW = display.actualContentWidth, display.actualContentHeight, display.contentCenterX
 
+
+
 -- -----------------------------------------------------------------------------------
 -- Scene event functions
 -- -----------------------------------------------------------------------------------
@@ -41,6 +62,43 @@ local screenW, screenH, halfW = display.actualContentWidth, display.actualConten
 -- Load the previous scores
 
 
+
+local function bestScore()
+	record.text="Record: "..actualScore
+end
+
+local function onBackBtnRelease()
+
+    display.remove(onPauseBtnRelease)
+	display.remove(fog)
+	display.remove( time )
+ 	display.remove(restartBtn)
+     display.remove( result )
+     display.remove( timebar )
+    timer.cancel( timerNewFish )
+    timer.cancel( countdownTimer )
+	composer.removeScene( "game")
+	composer.gotoScene( "menu", "fade", 400 )
+	return true	-- indicates successful touch
+end
+
+local function onRestartBtnRelease()
+
+  	display.remove(restartBtn)
+	display.remove(fog)
+ 	display.remove( time )
+    display.remove( timebar )
+    display.remove( world )
+    display.remove( backworld )
+    display.remove( result )
+	timer.cancel( countdownTimer )
+	timer.cancel( timerNewFish )
+
+
+	composer.removeScene( "game")
+	composer.gotoScene( "game", "fade", 400 )
+	return true	-- indicates successful touch
+end
 local function newFish(event)
 	fish.new(fishes, (math.random(1,2)-1)*screenW, math.random(frog.y-display.actualContentHeight/2,frog.y), display.actualContentWidth/4,display.actualContentWidth/4)
 	timerNewFish=timer.performWithDelay( math.random(1,4)*500, newFish )
@@ -76,6 +134,40 @@ local function onCollision()
     Runtime:removeEventListener("enterFrame", enterFrame)
     local stop =function() physics.stop() end
     timer.performWithDelay( 500,  stop )
+    fog=display.newImageRect( "sea.jpg", display.actualContentWidth, display.actualContentHeight )
+    fog.anchorX = 0
+    fog.anchorY = 0
+    fog.x = 0 + display.screenOriginX
+    fog.y = 0 + display.screenOriginY
+    fog:setFillColor(0,0,0)
+    fog.alpha=0.5
+    restartBtn = widget.newButton{
+        textOnly=true,
+        font="Herculanum",
+        label="Restart",
+        labelColor = { over={ 0, 0, 0 }, default={ 1, 1, 1, 1 } },
+        default="button.png",
+        over="button-over.png",
+        width=300, height=100,
+        onRelease = onRestartBtnRelease	-- event listener function
+    }
+
+    restartBtn.x = display.contentCenterX
+    restartBtn.y = display.contentCenterY*1.3
+    display.remove(score)
+    display.remove(record)
+    time = display.newText( "Score: " .. actualScore, display.contentCenterX, display.contentCenterY, "Herculanum", 50 )
+    time:setFillColor( 1, 1, 1 )
+    composer.setVariable( "finalScore", actualScore )
+        result = display.newText( "Record: " .. actualRecord, display.contentCenterX, display.contentCenterY*1.15, "Herculanum", 15 )
+       result:setFillColor( 1, 1, 1 )
+
+    if actualScore>actualRecord then
+        result.text="New Record: "..actualScore.."!"
+        composer.setVariable( "record", actualScore )
+    end
+
+    pauseBtn:toBack()
 
 end
 
@@ -150,15 +242,108 @@ local function onSceneTouch( event )
 			elseif posx>unit*3 and posx<=unit*4 then transition.moveTo( frog, { x=(unit*3+unit*4)/2, y=frog.y-display.actualContentWidth/4, time=125} ) frog.rotation = rotazione timer.cancel(countdownTimer) backworld:removeEventListener( "touch", onSceneTouch ) eatTheFrog()
 			end
         else frog:setSequence('default') frog:play() frog.rotation = 0 end
-
+        if actualScore>=actualRecord then
+            bestScore()
+         end
 	end
 	return true
 end
 
+local function ready(event)
+	pauseBtn:setLabel("Pause")
+	score:setFillColor( 1, 1, 1 )
+	display.remove( fog )
+	timer.cancel(watch)
+	timer.cancel(timerPause)
+ 	display.remove(time)
+    timer.resume(timerNewFish)
+    timer.resume(countdownTimer)
+	backworld:addEventListener( "touch", onSceneTouch )
+	press=false
+	secondi=3
+end
+
+local function clock(event)
+	 if secondi > 0 then
+		secondi=secondi-1
+		time.text= secondi
+	else
+		timer.cancel(timerPause)
+	end
+end
+
+local function onPauseBtnRelease()
+	if pause and not press then
+		pauseBtn:setLabel("")
+		time.text= secondi
+		watch=timer.performWithDelay( 1000, clock , secondi )
+		timerPause=timer.performWithDelay( 3000, ready, secondi )
+		pause, press=false, true
+	elseif not press then
+        pauseBtn:setLabel("Start")
+		time = display.newText( "Pause", display.contentCenterX, display.contentCenterY, "Herculanum", 100 )
+	 	time:setFillColor( 1, 1, 1 )
+	 	score:setFillColor( 0.7, 0.7, 0.7 )
+		fog=display.newImageRect( "sea.jpg", display.actualContentWidth, display.actualContentHeight )
+		fog.anchorX = 0
+		fog.anchorY = 0
+		fog.x = 0 + display.screenOriginX
+		fog.y = 0 + display.screenOriginY
+		fog:setFillColor(1,1,1)
+        fog.alpha=0.4
+        pauseBtn:toFront()
+        backBtn:toFront()
+		backworld:removeEventListener( "touch", onSceneTouch )
+        timer.pause(timerNewFish)
+        timer.pause(countdownTimer)
+		physics.pause()
+		pause,press=true, false
+	end
+end
+local function onOkBtnRelease()
+	timer.resume( timerNewFish )
+    backworld:addEventListener( "touch", onSceneTouch )
+    Runtime:addEventListener("enterFrame", enterFrame)
+	display.remove(fog)
+	world:remove( okBtn )
+	backBtn:toFront()
+	backBtn:setEnabled(true)
+	pauseBtn:toFront()
+    pauseBtn:setEnabled(true)
+    startCountdown()
+
+end
 
 
 function scene:create( event )
 	local sceneGroup = self.view
+
+
+
+  backBtn = widget.newButton{
+	textOnly=true,
+    label="Back",
+    font="Herculanum",
+	labelColor = { over={ 0, 0, 0 }, default={ 1, 1, 1, 1 } },
+	default="button.png",
+	over="button-over.png",
+	width=200, height=50,
+	onRelease = onBackBtnRelease	-- event listener function
+}
+backBtn.x = display.contentCenterX*0.2
+backBtn.y = display.contentCenterY-display.contentCenterY
+pauseBtn = widget.newButton{
+	textOnly=true,
+    label="Pause",
+    font="Herculanum",
+	labelColor = { over={ 0, 0, 0 }, default={ 1, 1, 1, 1 } },
+	default="button.png",
+	over="button-over.png",
+	width=200, height=50,
+	onRelease = onPauseBtnRelease	-- event listener function
+}
+pauseBtn.x = display.contentCenterX*1.8
+pauseBtn.y = display.contentCenterY-display.contentCenterY
 
 
 	local background = display.newImageRect( "background.jpg", display.actualContentWidth, display.actualContentHeight )
@@ -195,6 +380,10 @@ function scene:create( event )
     world:insert(frog)
 	sceneGroup:insert(backworld)
 	sceneGroup:insert(world)
+    sceneGroup:insert( pauseBtn )
+    sceneGroup:insert( backBtn )
+    sceneGroup:insert( score )
+	sceneGroup:insert( record )
 
 
 	-- add physics to the waterlilie
@@ -260,6 +449,12 @@ function scene:destroy( event )
 
 	-- Called prior to the removal of scene's "view" (sceneGroup)
     --
+    if backBtn then
+		backBtn:removeSelf()	-- widgets must be manually removed
+		backBtn = nil
+		pauseBtn:removeSelf()	-- widgets must be manually removed
+		pauseBtn = nil
+	end
 
 	-- INSERT code here to cleanup the scene
 	-- e.g. remove display objects, remove touch listeners, save state, etc.
