@@ -13,6 +13,10 @@ local pauseBtn
 local restartBtn
 local result
 local timerPause
+local eat = audio.loadSound( "eat.wav" )
+local click = audio.loadSound( "click.mp3" )
+local crack = audio.loadSound( "crack.mp3" )
+local waterMusic = audio.loadSound( "water.wav" )
 
 local json = require( "json" )
 
@@ -23,6 +27,10 @@ local filePath2 = system.pathForFile( "tutorial.json", system.DocumentsDirectory
 
 local scoresTable = {}
 local filePath = system.pathForFile( "scores.json", system.DocumentsDirectory )
+
+if composer.getVariable( "sound" )==nil then
+	composer.setVariable( "sound",true )
+end
 
 local score = display.newText( 0, display.contentCenterX, 40,  "Herculanum", 50 )
 score:setFillColor( 1, 1, 1 )
@@ -125,7 +133,9 @@ local function bestScore()
 end
 
 local function onBackBtnRelease()
-
+	audio.play( click, {channel = 2} )
+	-- go to game.lua scene
+    audio.stop(1)
     display.remove(onPauseBtnRelease)
 	display.remove(fog)
 	display.remove( time )
@@ -140,6 +150,8 @@ local function onBackBtnRelease()
 end
 
 local function onRestartBtnRelease()
+	audio.play(click, {channel = 2})
+	audio.stop(1)
 
   	display.remove(restartBtn)
 	display.remove(fog)
@@ -168,6 +180,7 @@ local function onRestartBtnRelease()
 	return true	-- indicates successful touch
 end
 local function newFish(event)
+	audio.play(glup, {channel = 4})
 	fish.new(fishes, (math.random(1,2)-1)*screenW, math.random(frog.y-display.actualContentHeight/2,frog.y), display.actualContentWidth/4,display.actualContentWidth/4)
 	timerNewFish=timer.performWithDelay( math.random(1,4)*500, newFish )
 end
@@ -295,7 +308,9 @@ local function startCountdown()
 end
 
 local function onSceneTouch( event )
-
+    audio.play( crack, {channel = 2} )
+	-- go to game.lua scene
+	audio.stop(1)
     if ( event.phase == "began" and countdown>0) then
 		local unit = display.actualContentWidth/4
 		local posx,posy=event.x,event.y
@@ -350,6 +365,7 @@ local function clock(event)
 end
 
 local function onPauseBtnRelease()
+	audio.play(click, {channel = 2})
 	if pause and not press then
 		pauseBtn:setLabel("")
 		time.text= secondi
@@ -378,6 +394,7 @@ local function onPauseBtnRelease()
 	end
 end
 local function onOkBtnRelease()
+	audio.play(click, {channel = 2})
 	timer.resume( timerNewFish )
     backworld:addEventListener( "touch", onSceneTouch )
     Runtime:addEventListener("enterFrame", enterFrame)
@@ -398,7 +415,22 @@ function scene:create( event )
 	loadScores()
 	loadTutorial()
 
+  audio.play(waterMusic, {channel=1, loop=-1})
 
+  if composer.getVariable( "sound" ) then
+  	audio.play(music, {channel=1, loops=-1})
+  	audio.setVolume(0.5, {channel=1})
+  	audio.setVolume(1, {channel=2})
+  	audio.setVolume(1, {channel=3})
+		audio.setVolume(1, {channel=4})
+
+  else
+  	audio.setVolume(0, {channel=1})
+  	audio.setVolume(0, {channel=2})
+  	audio.setVolume(0, {channel=3})
+		audio.setVolume(0, {channel=4})
+
+  end
   backBtn = widget.newButton{
 	textOnly=true,
     label="Back",
@@ -568,6 +600,14 @@ function scene:destroy( event )
 		pauseBtn = nil
 	end
 
+	audio.dispose(crack)
+	crack=nil
+	audio.dispose( eat )
+	audio.dispose( click )
+	click=nil
+	eat=nil
+	audio.dispose(waterMusic)
+	waterMusic=nil
 	-- INSERT code here to cleanup the scene
 	-- e.g. remove display objects, remove touch listeners, save state, etc.
 	local sceneGroup = self.view
