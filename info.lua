@@ -5,6 +5,7 @@ local frog= require('frog')
 local waterlilie= require('waterlilie')
 local waterlilies=display.newGroup()
 local fishes = display.newGroup()
+local click = audio.loadSound( "click.mp3" )
 
 
 
@@ -14,7 +15,13 @@ end
 
 function scene:create( event )
     local sceneGroup = self.view
-
+    if composer.getVariable( "sound" ) then
+    	audio.setVolume(0.5, {channel=1})
+    	audio.setVolume(1, {channel=2})
+    else
+    	audio.setVolume(0, {channel=1})
+    	audio.setVolume(0, {channel=2})
+    end
     titleLogo = display.newImageRect(sceneGroup, "logo2.png", 250, 90 )
     titleLogo.x = display.contentCenterX
     titleLogo.y = display.contentCenterY*0.8
@@ -64,6 +71,7 @@ function scene:create( event )
 
     local function onBackBtnRelease()
         -- go to game.lua scene
+        audio.play(click, {channel=2})
         composer.removeScene( "highScores")
        	composer.gotoScene( "menu", "fade", 400 )
         return true	-- indicates successful touch
@@ -116,6 +124,7 @@ end
 function scene:destroy( event )
     local sceneGroup = self.view
     -- Code here runs prior to the removal of scene's view
+    audio.dispose(click)
     click=nil
 end
 
