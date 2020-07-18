@@ -33,6 +33,7 @@ local fish=require('fish')
 local waterlilie_main=waterlilie
 local screenW, screenH, halfW = display.actualContentWidth, display.actualContentHeight, display.contentCenterX
 local click = audio.loadSound( "click.mp3" )
+local peaceful = audio.loadSound( "peaceful.mp3" )
 
 --------------------------------------------
 
@@ -153,7 +154,7 @@ local function enterFrame(event)
 
 	if composer.getVariable( "sound" ) then
 		audio.play(music, {channel=1, loops=-1})
-		audio.setVolume(0.5, {channel=1})
+		audio.setVolume(0.3, {channel=1})
 		audio.setVolume(1, {channel=2})
 		audio.setVolume(1, {channel=3})
 	else
@@ -161,6 +162,8 @@ local function enterFrame(event)
 		audio.setVolume(0, {channel=2})
 		audio.setVolume(0, {channel=3})
 	end
+
+    audio.play( peaceful, { channel=1, loops=-1, fadein=1000 } )
 
 	for i=1, fishes.numChildren do
 		if not fishes[i]==nil then
@@ -337,7 +340,9 @@ function scene:destroy( event )
 	-- INSERT code here to cleanup the scene
 	-- e.g. remove display objects, remove touch listeners, save state, etc.
 	audio.dispose(click)
-	click=nil
+    click=nil
+    audio.dispose(peaceful)
+	peaceful=nil
 	display.remove(soundBtn)
 
 	Runtime:removeEventListener("enterFrame", enterFrame)

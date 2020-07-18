@@ -16,6 +16,8 @@ local timerPause
 local splash = audio.loadSound( "splash.mp3" )
 local click = audio.loadSound( "click.mp3" )
 local crack = audio.loadSound( "crack.mp3" )
+local crunch = audio.loadSound( "crunch.mp3" )
+local peaceful = audio.loadSound( "peaceful.mp3" )
 
 local json = require( "json" )
 
@@ -59,7 +61,7 @@ local timebar = widget.newProgressView(
 )
 -- Set the progress to 50%
 local countdown=1
-local decrement=0.02
+local decrement=0.05
 timebar:setProgress( countdown )
 
 -- forward declarations and other locals
@@ -209,6 +211,7 @@ end
 
 local function onCollision()
     world:remove(frog)
+    audio.play( crunch, {channel = 2} )
     timer.cancel( timerNewFish )
     Runtime:removeEventListener("enterFrame", enterFrame)
     local stop =function() physics.stop() end
@@ -275,7 +278,7 @@ local function eatTheFrog()
     end
     timebar.alpha= 0
     timer.performWithDelay( 125, eatFish )
-    audio.play(splash, {channel = 1})
+    audio.play(splash, {channel = 2})
 
 end
 local function startCountdown()
@@ -309,7 +312,6 @@ end
 local function onSceneTouch( event )
     audio.play( crack, {channel = 2} )
 	-- go to game.lua scene
-	audio.stop(2)
     if ( event.phase == "began" and countdown>0) then
 		local unit = display.actualContentWidth/4
 		local posx,posy=event.x,event.y
@@ -416,7 +418,7 @@ function scene:create( event )
 
 
   if composer.getVariable( "sound" ) then
-  	audio.setVolume(0.5, {channel=1})
+  	audio.setVolume(0.2, {channel=1})
   	audio.setVolume(1, {channel=2})
   	audio.setVolume(1, {channel=3})
 	audio.setVolume(1, {channel=4})
@@ -428,6 +430,8 @@ function scene:create( event )
 	audio.setVolume(0, {channel=4})
 
   end
+  audio.play( peaceful, { channel=1, loops=-1, fadein=1000 } )
+
   backBtn = widget.newButton{
 	textOnly=true,
     label="Back",
@@ -598,11 +602,15 @@ function scene:destroy( event )
 	end
 
 	audio.dispose(crack)
-	crack=nil
-	audio.dispose( splash )
+    crack=nil
+    audio.dispose(crunch)
+	crunch=nil
+    audio.dispose( splash )
+    splash=nil
 	audio.dispose( click )
 	click=nil
-	splash=nil
+    audio.dispose(peaceful)
+	peaceful=nil
 
 	-- INSERT code here to cleanup the scene
 	-- e.g. remove display objects, remove touch listeners, save state, etc.
